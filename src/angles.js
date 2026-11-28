@@ -54,7 +54,13 @@ export function adjust (arc, angles) {
 		}
 	}
 	else if (arc === "longer") {
-		if (-180 < angleDiff && angleDiff < 180) {
+		// A zero angular difference means both hues are already the same hue
+		// (this includes a missing hue carried over from the other color).
+		// There is no arc to lengthen then: wrapping by 360 would put the
+		// midpoint on the opposite hue (e.g. 30 → 210), so keep both angles
+		// on the shared hue instead. Non-zero differences such as 350 → 10
+		// still take the long way around below.
+		if (angleDiff !== 0 && -180 < angleDiff && angleDiff < 180) {
 			if (angleDiff > 0) {
 				a1 += 360;
 			}

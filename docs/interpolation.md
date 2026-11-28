@@ -49,6 +49,12 @@ c1.range(c2, {space: "lch", hue: "raw"});
 c1.range(c2, {space: "lch"}); // default is "shorter"
 ```
 
+When both colors share the same hue (including an achromatic color whose missing hue is
+carried over from the other color), the `longer` arc has no angular distance to lengthen.
+It is then treated as a constant hue, instead of wrapping around by 360 degrees, which would
+put the midpoint on the opposite hue. Distinct hues, such as 350 and 10, are unaffected and
+still take the long way around.
+
 Range interpolates between colors as they were at the time of its creation.
 If you change the colors afterwards, the range will not be affected:
 

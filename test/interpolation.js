@@ -191,6 +191,97 @@ export default {
 			],
 		},
 		{
+			name: "Same-hue longer arc",
+			description: `When both endpoints share a hue, the "longer" hue arc has no angular
+			distance to lengthen, and wrapping by 360 degrees would move the midpoint to the
+			opposite hue. The hue must stay constant, matching the shorter arc. This also covers
+			a missing (powerless) hue carried over from the other endpoint, and re-interpolating
+			the midpoint with itself must give the same result.`,
+			tests: [
+				{
+					name: "Oklch, identical hues: longer midpoint stays on hue 30",
+					data: { options: { space: "oklch", hue: "longer" } },
+					run (c1, c2, p) {
+						let color = Color.range(c1, c2, this.data.options)(p);
+						return [...color.coords, color.alpha, ...Color.to(color, "srgb").coords];
+					},
+					check: checkColor({ epsilon: 1e-9 }),
+					args: ["oklch(0.7 0.2 30)", "oklch(0.4 0.1 30)", 0.5],
+					// oklch midpoint [0.55, 0.15, 30], followed by its sRGB coords
+					expect: [0.55, 0.15, 30, 1, 0.724680364328, 0.279619727527, 0.221966096499],
+				},
+				{
+					name: "Oklch, identical hues: longer and shorter midpoints are the same",
+					run (c1, c2) {
+						let longer = Color.range(c1, c2, { space: "oklch", hue: "longer" })(0.5);
+						let shorter = Color.range(c1, c2, { space: "oklch", hue: "shorter" })(0.5);
+						return [...longer.coords, ...shorter.coords];
+					},
+					check: checkColor(),
+					args: ["oklch(0.7 0.2 30)", "oklch(0.4 0.1 30)"],
+					expect: [0.55, 0.15, 30, 0.55, 0.15, 30],
+				},
+				{
+					name: "Oklch, achromatic endpoint: longer midpoint keeps the defined hue 120",
+					data: { options: { space: "oklch", hue: "longer" } },
+					run (c1, c2, p) {
+						let color = Color.range(c1, c2, this.data.options)(p);
+						return [...color.coords, color.alpha, ...Color.to(color, "srgb").coords];
+					},
+					check: checkColor({ epsilon: 1e-9 }),
+					args: ["oklch(1 0 none)", "oklch(0.5 0.2 120)", 0.5],
+					// oklch midpoint [0.75, 0.1, 120], followed by its sRGB coords
+					expect: [0.75, 0.1, 120, 1, 0.649484524164, 0.719721741934, 0.430114802844],
+				},
+				{
+					name: "HSL, identical hues: longer midpoint stays on hue 30",
+					data: { options: { space: "hsl", hue: "longer" } },
+					run (c1, c2, p) {
+						let color = Color.range(c1, c2, this.data.options)(p);
+						return [...color.coords, color.alpha, ...Color.to(color, "srgb").coords];
+					},
+					check: checkColor({ epsilon: 1e-9 }),
+					args: ["hsl(30 80% 50%)", "hsl(30 40% 30%)", 0.5],
+					// hsl midpoint [30, 60, 40], followed by its sRGB coords (R = 0.64)
+					expect: [30, 60, 40, 1, 0.64, 0.4, 0.16],
+				},
+				{
+					name: "Re-interpolating the longer-arc midpoint with itself is stable",
+					run (c1, c2) {
+						let mid = Color.range(c1, c2, { space: "oklch", hue: "longer" })(0.5);
+						let again = Color.range(mid, mid, { space: "oklch", hue: "longer" })(0.5);
+						return [...again.coords, ...Color.to(again, "srgb").coords];
+					},
+					check: checkColor({ epsilon: 1e-9 }),
+					args: ["oklch(0.7 0.2 30)", "oklch(0.4 0.1 30)"],
+					expect: [0.55, 0.15, 30, 0.724680364328, 0.279619727527, 0.221966096499],
+				},
+				{
+					name: "Distinct hues still take the longer way: 350 → 10 passes through 180",
+					data: { options: { space: "oklch", hue: "longer" } },
+					run (c1, c2, p) {
+						let color = Color.range(c1, c2, this.data.options)(p);
+						return [...color.coords, ...Color.to(color, "srgb").coords];
+					},
+					check: checkColor({ epsilon: 1e-9 }),
+					args: ["oklch(0.55 0.15 350)", "oklch(0.55 0.15 10)", 0.5],
+					// Longer arc midpoint hue is 180; shorter would be 360.
+					expect: [0.55, 0.15, 180, -0.306861691258, 0.54878814446, 0.458341877981],
+				},
+				{
+					name: "Distinct hues still take the shorter way: 350 → 10 passes through 360",
+					data: { options: { space: "oklch", hue: "shorter" } },
+					run (c1, c2, p) {
+						let color = Color.range(c1, c2, this.data.options)(p);
+						return color.coords;
+					},
+					check: checkColor(),
+					args: ["oklch(0.55 0.15 350)", "oklch(0.55 0.15 10)", 0.5],
+					expect: [0.55, 0.15, 360],
+				},
+			],
+		},
+		{
 			name: "Missing hue",
 			description: `A missing hue takes the other color's hue, so that the interpolation stays
 			on a single hue rather than sweeping towards 0deg.`,
